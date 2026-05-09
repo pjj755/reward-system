@@ -26,7 +26,7 @@ const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 export default function CheckInCalendar({ checkinDates, currentStreak }: CheckInCalendarProps) {
   const [displayedMonth, setDisplayedMonth] = useState(new Date());
 
-  const parsedCheckinDates = checkinDates.map(parseISO);
+  const parsedCheckinDates = checkinDates.map(d => parseISO(d));
 
   const monthStart = startOfMonth(displayedMonth);
   const monthEnd = endOfMonth(displayedMonth);
