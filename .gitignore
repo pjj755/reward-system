@@ -37,4 +37,4 @@ prisma/migrations/
 *.pem
 
 # Other
-.claude 
+.claude/
