@@ -1,7 +1,7 @@
 'use client'
 import { useAppSession } from '@/lib/use-app-session'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { getCategoryColor, cn } from '@/lib/utils'
 import { RedeemModal } from '@/components/rewards/RedeemModal'
 
@@ -39,26 +39,6 @@ export default function RewardsPage() {
       return rank(a) - rank(b)
     })
   const filtered = sortRewards(filter === 'all' ? rewards : rewards.filter(r => r.category === filter))
-
-  const trackExplorer = useCallback(async (rewardId: string) => {
-    if (!session) return
-    const key = 'viewed_rewards'
-    const existing: string[] = JSON.parse(localStorage.getItem(key) || '[]')
-    if (existing.includes(rewardId)) return
-    const updated = [...existing, rewardId]
-    localStorage.setItem(key, JSON.stringify(updated))
-    if (updated.length >= 5) {
-      const res = await fetch('/api/quests/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ questType: 'social' }),
-      })
-      const data = await res.json()
-      if (data.success) {
-        localStorage.removeItem(key)
-      }
-    }
-  }, [session])
 
   const handleCardClick = (reward: Reward) => {
     if (!session) { router.push('/auth'); return }
@@ -170,7 +150,7 @@ export default function RewardsPage() {
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map(reward => (
-            <RewardCard key={reward.id} reward={reward} balance={balance} onClick={() => handleCardClick(reward)} onView={trackExplorer} />
+            <RewardCard key={reward.id} reward={reward} balance={balance} onClick={() => handleCardClick(reward)} />
           ))}
         </div>
       )}
@@ -187,24 +167,11 @@ export default function RewardsPage() {
   )
 }
 
-function RewardCard({ reward, balance, onClick, onView }: { reward: Reward; balance: number; onClick: () => void; onView: (id: string) => void }) {
+function RewardCard({ reward, balance, onClick }: { reward: Reward; balance: number; onClick: () => void }) {
   const affordable = reward.canAfford && reward.inStock && !reward.alreadyClaimed
-  const cardRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const el = cardRef.current
-    if (!el) return
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { onView(reward.id); observer.disconnect() } },
-      { threshold: 0.5 }
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [reward.id, onView])
 
   return (
     <div
-      ref={cardRef}
       onClick={affordable ? onClick : undefined}
       className={cn(
         'relative overflow-hidden transition-all duration-200 flex flex-col rounded-2xl border p-5',

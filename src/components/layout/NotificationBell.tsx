@@ -106,7 +106,7 @@ function ClaimModal({
               <div className="text-5xl z-10 animate-bounce">{quest.questEmoji}</div>
             </div>
             <div className="text-4xl font-bold font-mono text-aurora-300 mb-1">+{count}</div>
-            <div className="text-white/50 text-sm mb-2">积分</div>
+            <div className="text-white/50 text-sm mb-2">pts</div>
             <div className="font-display text-lg font-bold text-white mb-1">Reward Claimed!</div>
             <div className="text-white/40 text-xs">Points are being added to your account…</div>
           </div>

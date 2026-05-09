@@ -6,39 +6,96 @@ import GitHubProvider from 'next-auth/providers/github'
 import GoogleProvider from 'next-auth/providers/google'
 import { prisma } from './prisma'
 
+function magicLinkHtml(url: string) {
+  return `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0f0f1a;color:#fff;border-radius:16px">
+      <h2 style="color:#fff;margin-bottom:8px">Sign in to Moonshot Rewards 🌙</h2>
+      <p style="color:#aaa">Click the button below to sign in. This link expires in 24 hours.</p>
+      <a href="${url}" style="display:inline-block;margin:24px 0;padding:12px 28px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px">
+        Sign In to Moonshot
+      </a>
+      <p style="color:#666;font-size:12px">If you didn't request this, you can safely ignore this email.</p>
+    </div>
+  `
+}
+
 function buildEmailProvider() {
   const from = process.env.EMAIL_FROM ?? 'Moonshot <noreply@moonshot.local>'
 
+  const hasResend = !!process.env.RESEND_API_KEY
   const hasSmtp = process.env.EMAIL_SERVER_USER && process.env.EMAIL_SERVER_PASSWORD
+
+  if (hasResend) {
+    return EmailProvider({
+      from,
+      server: 'smtp://localhost:25',
+      async sendVerificationRequest({ identifier, url, provider }) {
+        console.log('[EmailProvider] Sending via Resend to', identifier)
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 10000)
+        try {
+          const result = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from: provider.from,
+              to: identifier,
+              subject: 'Sign in to Moonshot Rewards',
+              html: magicLinkHtml(url),
+            }),
+            signal: controller.signal,
+          })
+          if (!result.ok) {
+            const text = await result.text()
+            throw new Error(`Resend API error: ${result.status} ${text}`)
+          }
+          console.log('[EmailProvider] Resend: email sent to', identifier)
+        } finally {
+          clearTimeout(timeout)
+        }
+      },
+    })
+  }
 
   if (hasSmtp) {
     return EmailProvider({
       from,
-      server: { host: 'localhost', port: 25, auth: { user: '', pass: '' } },
+      server: {
+        host: process.env.EMAIL_SERVER_HOST ?? 'smtp.gmail.com',
+        port: Number(process.env.EMAIL_SERVER_PORT ?? 587),
+        auth: {
+          user: process.env.EMAIL_SERVER_USER!,
+          pass: process.env.EMAIL_SERVER_PASSWORD!,
+        },
+      },
       async sendVerificationRequest({ identifier, url, provider }) {
+        const host = process.env.EMAIL_SERVER_HOST ?? 'smtp.gmail.com'
+        const port = Number(process.env.EMAIL_SERVER_PORT ?? 587)
+        console.log('[EmailProvider] Sending email via SMTP', host, ':', port)
+
         const nodemailer = (await import('nodemailer')).default
         const transport = nodemailer.createTransport({
-          host: process.env.EMAIL_SERVER_HOST ?? 'smtp.gmail.com',
-          port: Number(process.env.EMAIL_SERVER_PORT ?? 587),
+          service: host.includes('gmail') ? 'gmail' : undefined,
+          host: host.includes('gmail') ? undefined : host,
+          port: host.includes('gmail') ? undefined : port,
+          secure: port === 465,
           auth: {
             user: process.env.EMAIL_SERVER_USER,
             pass: process.env.EMAIL_SERVER_PASSWORD,
           },
+          tls: { rejectUnauthorized: false },
+          connectionTimeout: 8000,
+          greetingTimeout: 8000,
+          socketTimeout: 8000,
         })
         await transport.sendMail({
           from: provider.from,
           to: identifier,
           subject: 'Sign in to Moonshot Rewards',
-          html: `
-            <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0f0f1a;color:#fff;border-radius:16px">
-              <h2 style="color:#fff;margin-bottom:8px">Sign in to Moonshot Rewards 🌙</h2>
-              <p style="color:#aaa">Click the button below to sign in. This link expires in 24 hours.</p>
-              <a href="${url}" style="display:inline-block;margin:24px 0;padding:12px 28px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px">
-                Sign In to Moonshot
-              </a>
-              <p style="color:#666;font-size:12px">If you didn't request this, you can safely ignore this email.</p>
-            </div>
-          `,
+          html: magicLinkHtml(url),
         })
       },
     })

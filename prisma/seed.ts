@@ -59,16 +59,6 @@ async function main() {
       iconEmoji: '⚡',
     },
     {
-      title: 'Community Explorer',
-      description: 'Browse and click on 5 different rewards in the storefront to explore what\'s available.',
-      pointValue: 75,
-      type: 'social',
-      category: 'one_time',
-      difficulty: 'easy',
-      isFunctional: true,
-      iconEmoji: '🗺️',
-    },
-    {
       title: 'Night Owl',
       description: 'Complete a check-in after midnight for 3 consecutive nights.',
       pointValue: 120,

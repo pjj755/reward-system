@@ -75,14 +75,16 @@ export function RedeemModal({ reward, balance, onClose, onSuccess }: {
     }
   }
 
+  const handleClose = () => phase === 'success' ? onSuccess() : onClose()
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={e => e.target === e.currentTarget && handleClose()}>
       <div className="relative w-full max-w-md bg-space-800 border border-white/10 rounded-3xl overflow-hidden shadow-card">
         <div ref={confettiRef} className="absolute inset-0 pointer-events-none overflow-hidden z-20" />
         <div className="absolute inset-0 bg-nova-glow opacity-30" />
 
         <div className="relative p-8">
-          <button onClick={onClose} className="absolute top-4 right-4 text-white/30 hover:text-white/60 transition-colors text-xl">×</button>
+          <button onClick={handleClose} className="absolute top-4 right-4 text-white/30 hover:text-white/60 transition-colors text-xl">×</button>
 
           {/* CONFIRM */}
           {phase === 'confirm' && (

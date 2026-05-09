@@ -32,12 +32,11 @@ export async function POST(req: NextRequest) {
   }
 
   // Validate per-user limit
-  if (reward.limitPerUser === 1) {
-    const existing = await prisma.redemption.findFirst({
-      where: { userId: userId, rewardId: rewardId },
-      select: { id: true },
+  if (reward.limitPerUser !== -1) {
+    const existingCount = await prisma.redemption.count({
+      where: { userId, rewardId },
     })
-    if (existing) {
+    if (existingCount >= reward.limitPerUser) {
       return NextResponse.json({ error: 'You have already redeemed this reward' }, { status: 409 })
     }
   }
@@ -57,36 +56,43 @@ export async function POST(req: NextRequest) {
 
   const code = generateRedemptionCode()
 
-  // Atomic transaction
-  const [redemption] = await prisma.$transaction([
-    prisma.redemption.create({
-      data: {
-        userId,
-        rewardId,
-        pointsSpent: reward.pointCost,
-        status: 'completed',
-        code,
-      },
-    }),
-    prisma.user.update({
+  // Interactive transaction — re-validates stock inside to prevent overselling
+  const redemption = await prisma.$transaction(async (tx) => {
+    if (reward.stock !== -1) {
+      const fresh = await tx.reward.findUnique({ where: { id: rewardId }, select: { stock: true } })
+      if (!fresh || fresh.stock <= 0) throw new Error('OUT_OF_STOCK')
+    }
+
+    const created = await tx.redemption.create({
+      data: { userId, rewardId, pointsSpent: reward.pointCost, status: 'completed', code },
+    })
+    await tx.user.update({
       where: { id: userId },
       data: {
         pointsBalance: { decrement: reward.pointCost },
         totalSpent: { increment: reward.pointCost },
       },
-    }),
-    prisma.pointTransaction.create({
+    })
+    await tx.pointTransaction.create({
       data: {
         userId,
         amount: -reward.pointCost,
         type: 'redemption',
         description: `Redeemed: ${reward.title}`,
       },
-    }),
-    ...(reward.stock !== -1
-      ? [prisma.reward.update({ where: { id: rewardId }, data: { stock: { decrement: 1 } } })]
-      : []),
-  ])
+    })
+    if (reward.stock !== -1) {
+      await tx.reward.update({ where: { id: rewardId }, data: { stock: { decrement: 1 } } })
+    }
+    return created
+  }).catch((err) => {
+    if (err.message === 'OUT_OF_STOCK') return null
+    throw err
+  })
+
+  if (!redemption) {
+    return NextResponse.json({ error: 'Out of stock' }, { status: 409 })
+  }
 
   const bonusQuest = await markQuestPending(userId, 'bonus')
 

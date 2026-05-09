@@ -15,9 +15,8 @@ export async function GET() {
     emailHasPass,
     googleProviderEnabled: googleHasId,
     googleHasId,
-    // 显示变量名长度，避免空格问题，但不暴露值
-    emailUserLength: process.env.EMAIL_SERVER_USER?.length ?? 0,
-    emailPassLength: process.env.EMAIL_SERVER_PASSWORD?.length ?? 0,
-    googleIdLength: process.env.GOOGLE_CLIENT_ID?.length ?? 0,
+    emailHost: process.env.EMAIL_SERVER_HOST ?? 'smtp.gmail.com',
+    emailPort: Number(process.env.EMAIL_SERVER_PORT ?? 587),
+    emailFrom: process.env.EMAIL_FROM,
   })
 }
