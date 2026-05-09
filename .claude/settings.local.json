@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Read(//tmp/**)",
+      "Bash(command -v nvm)",
+      "Bash(jobs)",
+      "Bash(openssl rand *)",
+      "Bash(npm install *)",
+      "Bash(npx prisma *)"
+    ]
+  }
+}

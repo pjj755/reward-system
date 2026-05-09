@@ -1,0 +1,164 @@
+// Moonshot Rewards Platform - Database Schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  walletAddress String?   @unique
+  name          String?
+  image         String?
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Points balance
+  pointsBalance Int @default(0)
+  totalEarned   Int @default(0)
+  totalSpent    Int @default(0)
+
+  // Streak
+  currentStreak Int       @default(0)
+  longestStreak Int       @default(0)
+  lastCheckinAt DateTime?
+
+  // Relations
+  accounts        Account[]
+  sessions        Session[]
+  questCompletions QuestCompletion[]
+  redemptions     Redemption[]
+  transactions    PointTransaction[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// Quest definitions (seeded, not user-created)
+model Quest {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  pointValue  Int
+  type        String   // "daily_checkin" | "social" | "profile" | "bonus" | "challenge"
+  category    String   // "daily" | "one_time" | "recurring"
+  difficulty  String   // "easy" | "medium" | "hard" | "legendary"
+  isActive    Boolean  @default(true)
+  isFunctional Boolean @default(false) // Only daily_checkin is truly functional
+  iconEmoji   String   @default("⚡")
+  metadata    String?  // JSON string for extra config
+
+  completions QuestCompletion[]
+
+  createdAt DateTime @default(now())
+
+  @@map("quests")
+}
+
+model QuestCompletion {
+  id          String   @id @default(cuid())
+  userId      String
+  questId     String
+  completedAt DateTime @default(now())
+  pointsEarned Int
+  metadata    String?  // JSON: streak count, bonus earned, etc.
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quest Quest @relation(fields: [questId], references: [id], onDelete: Cascade)
+
+  @@map("quest_completions")
+}
+
+// Reward definitions (seeded)
+model Reward {
+  id          String  @id @default(cuid())
+  title       String
+  description String
+  pointCost   Int
+  category    String  // "voucher" | "digital" | "exclusive" | "physical"
+  isActive    Boolean @default(true)
+  isFunctional Boolean @default(false) // One reward is fully functional
+  stock       Int     @default(-1) // -1 = unlimited
+  iconEmoji   String  @default("🎁")
+  imageUrl    String?
+  metadata    String? // JSON for redemption details
+
+  redemptions Redemption[]
+
+  createdAt DateTime @default(now())
+
+  @@map("rewards")
+}
+
+model Redemption {
+  id          String   @id @default(cuid())
+  userId      String
+  rewardId    String
+  redeemedAt  DateTime @default(now())
+  pointsSpent Int
+  status      String   @default("completed") // "completed" | "pending" | "cancelled"
+  code        String?  // Generated redemption code
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reward Reward @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+
+  @@map("redemptions")
+}
+
+model PointTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  amount      Int      // Positive = earned, Negative = spent
+  type        String   // "quest_completion" | "redemption" | "bonus" | "streak_bonus"
+  description String
+  referenceId String?  // questCompletionId or redemptionId
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("point_transactions")
+}
