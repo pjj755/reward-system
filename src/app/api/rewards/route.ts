@@ -11,19 +11,45 @@ export async function GET() {
   })
 
   if (!session?.user?.id) {
-    return NextResponse.json({ rewards })
+    return NextResponse.json({
+      rewards: rewards.map(r => ({
+        ...r,
+        canAfford: false,
+        inStock: r.stock === -1 || r.stock > 0,
+        userRedemptionCount: 0,
+        isOneTime: r.limitPerUser === 1,
+        alreadyClaimed: false,
+      })),
+    })
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { pointsBalance: true },
+  const userId = session.user.id
+
+  const [user, redemptionCounts] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { pointsBalance: true } }),
+    prisma.redemption.groupBy({
+      by: ['rewardId'],
+      where: { userId },
+      _count: { id: true },
+    }),
+  ])
+
+  const countMap = new Map(redemptionCounts.map(r => [r.rewardId, r._count.id]))
+  const balance = user?.pointsBalance ?? 0
+
+  const rewardsWithMeta = rewards.map(r => {
+    const userRedemptionCount = countMap.get(r.id) ?? 0
+    const isOneTime = r.limitPerUser !== -1
+    const alreadyClaimed = isOneTime && userRedemptionCount >= r.limitPerUser
+    return {
+      ...r,
+      canAfford: balance >= r.pointCost,
+      inStock: r.stock === -1 || r.stock > 0,
+      userRedemptionCount,
+      isOneTime,
+      alreadyClaimed,
+    }
   })
 
-  const rewardsWithAffordability = rewards.map(r => ({
-    ...r,
-    canAfford: (user?.pointsBalance ?? 0) >= r.pointCost,
-    inStock: r.stock === -1 || r.stock > 0,
-  }))
-
-  return NextResponse.json({ rewards: rewardsWithAffordability, balance: user?.pointsBalance ?? 0 })
+  return NextResponse.json({ rewards: rewardsWithMeta, balance })
 }

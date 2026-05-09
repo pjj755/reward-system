@@ -5,7 +5,8 @@ import { cn } from '@/lib/utils'
 
 interface Reward {
   id: string; title: string; description: string; pointCost: number;
-  category: string; iconEmoji: string; isFunctional: boolean; canAfford: boolean; inStock: boolean
+  category: string; iconEmoji: string; isFunctional: boolean; canAfford: boolean; inStock: boolean;
+  isOneTime?: boolean; alreadyClaimed?: boolean
 }
 interface RedeemResult {
   code: string; reward: { title: string; emoji: string }
@@ -26,7 +27,7 @@ export function RedeemModal({ reward, balance, onClose, onSuccess }: {
   const isNonFunctional = !reward.isFunctional
 
   const handleRedeem = async () => {
-    if (!canAfford || !reward.inStock) return
+    if (!canAfford || !reward.inStock || reward.alreadyClaimed) return
     setPhase('loading')
     try {
       const res = await fetch('/api/rewards/redeem', {
@@ -92,6 +93,12 @@ export function RedeemModal({ reward, balance, onClose, onSuccess }: {
                 <p className="text-white/50 text-sm">{reward.description}</p>
               </div>
 
+              {reward.isOneTime && (
+                <div className="bg-moon-500/10 border border-moon-500/20 rounded-xl p-3 mb-4 flex items-center gap-2">
+                  <span className="text-moon-400 text-lg flex-shrink-0">⚠️</span>
+                  <p className="text-moon-400 text-sm"><strong>One-time only.</strong> This reward can only be redeemed once per account.</p>
+                </div>
+              )}
               {isNonFunctional && (
                 <div className="bg-moon-500/10 border border-moon-500/20 rounded-xl p-3 mb-4 text-center">
                   <p className="text-moon-400 text-sm">⚠️ This reward is for demo purposes. Points will be deducted but no real item will be delivered.</p>

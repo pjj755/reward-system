@@ -4,6 +4,7 @@ import { signOut } from 'next-auth/react'
 import { useAppSession } from '@/lib/use-app-session'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { NotificationBell } from './NotificationBell'
 
 const navLinks = [
   { href: '/quests', label: 'Quests', icon: '⚡' },
@@ -56,6 +57,10 @@ export function Navbar() {
                   <span className="points-display text-sm">{(session.user.pointsBalance ?? 0).toLocaleString()}</span>
                   <span className="text-white/40 text-xs">pts</span>
                 </Link>
+
+                {/* Notification Bell */}
+                <NotificationBell />
+
                 {/* Avatar */}
                 <div className="relative group">
                   <button className="flex items-center gap-2">

@@ -7,23 +7,47 @@ import GoogleProvider from 'next-auth/providers/google'
 import { prisma } from './prisma'
 
 function buildEmailProvider() {
-  if (process.env.EMAIL_SERVER_HOST) {
+  const from = process.env.EMAIL_FROM ?? 'Moonshot <noreply@moonshot.local>'
+
+  const hasSmtp = process.env.EMAIL_SERVER_USER && process.env.EMAIL_SERVER_PASSWORD
+
+  if (hasSmtp) {
     return EmailProvider({
-      server: {
-        host: process.env.EMAIL_SERVER_HOST,
-        port: Number(process.env.EMAIL_SERVER_PORT ?? 587),
-        auth: {
-          user: process.env.EMAIL_SERVER_USER,
-          pass: process.env.EMAIL_SERVER_PASSWORD,
-        },
+      from,
+      server: { host: 'localhost', port: 25, auth: { user: '', pass: '' } },
+      async sendVerificationRequest({ identifier, url, provider }) {
+        const nodemailer = (await import('nodemailer')).default
+        const transport = nodemailer.createTransport({
+          host: process.env.EMAIL_SERVER_HOST ?? 'smtp.gmail.com',
+          port: Number(process.env.EMAIL_SERVER_PORT ?? 587),
+          auth: {
+            user: process.env.EMAIL_SERVER_USER,
+            pass: process.env.EMAIL_SERVER_PASSWORD,
+          },
+        })
+        await transport.sendMail({
+          from: provider.from,
+          to: identifier,
+          subject: 'Sign in to Moonshot Rewards',
+          html: `
+            <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0f0f1a;color:#fff;border-radius:16px">
+              <h2 style="color:#fff;margin-bottom:8px">Sign in to Moonshot Rewards 🌙</h2>
+              <p style="color:#aaa">Click the button below to sign in. This link expires in 24 hours.</p>
+              <a href="${url}" style="display:inline-block;margin:24px 0;padding:12px 28px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px">
+                Sign In to Moonshot
+              </a>
+              <p style="color:#666;font-size:12px">If you didn't request this, you can safely ignore this email.</p>
+            </div>
+          `,
+        })
       },
-      from: process.env.EMAIL_FROM ?? 'noreply@moonshot.local',
     })
   }
+
   if (process.env.NODE_ENV === 'development') {
     return EmailProvider({
-      server: 'smtp://localhost:25',
-      from: 'noreply@moonshot.local',
+      from,
+      server: { host: 'localhost', port: 25, auth: { user: '', pass: '' } },
       sendVerificationRequest({ url }) {
         console.log('\n🔗 Magic Link (dev mode):')
         console.log(url)
@@ -31,6 +55,7 @@ function buildEmailProvider() {
       },
     })
   }
+
   return null
 }
 
@@ -64,20 +89,8 @@ export const authOptions: NextAuthOptions = {
               walletAddress: credentials.address.toLowerCase(),
               email: `${credentials.address.toLowerCase()}@wallet.moonshot`,
               name: shortAddr,
-              pointsBalance: 100,
-              totalEarned: 100,
             },
           })
-          if (!existing) {
-            await prisma.pointTransaction.create({
-              data: {
-                userId: user.id,
-                amount: 100,
-                type: 'bonus',
-                description: '🎉 Welcome bonus — thanks for joining Moonshot!',
-              },
-            })
-          }
           return { id: user.id, name: user.name, email: user.email }
         } catch {
           return null
@@ -124,22 +137,4 @@ export const authOptions: NextAuthOptions = {
     },
   },
   session: { strategy: 'jwt' },
-  events: {
-    createUser: async ({ user }) => {
-      await prisma.$transaction([
-        prisma.user.update({
-          where: { id: user.id },
-          data: { pointsBalance: 100, totalEarned: 100 },
-        }),
-        prisma.pointTransaction.create({
-          data: {
-            userId: user.id,
-            amount: 100,
-            type: 'bonus',
-            description: '🎉 Welcome bonus — thanks for joining Moonshot!',
-          },
-        }),
-      ])
-    },
-  },
 }

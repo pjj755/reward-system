@@ -23,6 +23,9 @@ model User {
   totalEarned   Int @default(0)
   totalSpent    Int @default(0)
 
+  // Welcome bonus
+  welcomeBonusClaimed Boolean @default(false)
+
   // Streak
   currentStreak Int       @default(0)
   longestStreak Int       @default(0)
@@ -106,6 +109,8 @@ model QuestCompletion {
   completedAt DateTime @default(now())
   pointsEarned Int
   metadata    String?  // JSON: streak count, bonus earned, etc.
+  claimed     Boolean  @default(true)
+  claimedAt   DateTime?
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   quest Quest @relation(fields: [questId], references: [id], onDelete: Cascade)
@@ -122,8 +127,9 @@ model Reward {
   category    String  // "voucher" | "digital" | "exclusive" | "physical"
   isActive    Boolean @default(true)
   isFunctional Boolean @default(false) // One reward is fully functional
-  stock       Int     @default(-1) // -1 = unlimited
-  iconEmoji   String  @default("🎁")
+  stock        Int     @default(-1) // -1 = unlimited
+  limitPerUser Int     @default(-1) // -1 = unlimited, 1 = once per user
+  iconEmoji    String  @default("🎁")
   imageUrl    String?
   metadata    String? // JSON for redemption details
 

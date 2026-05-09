@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import CheckInCalendar from '@/components/profile/CheckInCalendar'
+import EditNameForm from '@/components/profile/EditNameForm'
 
 export default async function ProfilePage() {
   const session = await getDevSession()
@@ -24,18 +25,19 @@ export default async function ProfilePage() {
         include: { reward: { select: { title: true, iconEmoji: true } } },
       },
       questCompletions: {
-        where: { quest: { type: 'daily_checkin' } },
-        select: { completedAt: true },
         orderBy: { completedAt: 'desc' },
         take: 365,
+        include: { quest: { select: { title: true, iconEmoji: true, type: true } } },
       },
     },
   })
   if (!user) redirect('/auth')
 
-  const checkinDates = user.questCompletions.map(c =>
-    format(new Date(c.completedAt), 'yyyy-MM-dd')
-  )
+  const checkinDates = user.questCompletions
+    .filter(c => c.quest.type === 'daily_checkin')
+    .map(c => format(new Date(c.completedAt), 'yyyy-MM-dd'))
+
+  const claimedQuests = user.questCompletions.filter(c => c.claimed)
 
   const displayName = user.name ?? user.email?.split('@')[0] ?? 'Explorer'
   const initials = displayName.slice(0, 2).toUpperCase()
@@ -66,6 +68,7 @@ export default async function ProfilePage() {
             </div>
             <h2 className="font-display text-xl font-bold text-white">{displayName}</h2>
             <p className="text-white/40 text-sm">{user.email}</p>
+            <EditNameForm currentName={user.name ?? ''} />
             <div className={cn('flex items-center justify-center gap-2 mt-3', level.color)}>
               <span>{level.icon}</span>
               <span className="font-medium">{level.label}</span>
@@ -131,6 +134,29 @@ export default async function ProfilePage() {
         {/* Right: Calendar + Transaction History */}
         <div className="lg:col-span-2 space-y-6">
           <CheckInCalendar checkinDates={checkinDates} currentStreak={user.currentStreak} />
+          {/* Quest Claim History */}
+          {claimedQuests.length > 0 && (
+            <div className="card">
+              <h3 className="font-display text-xl font-bold text-white mb-6">Quest Rewards Claimed</h3>
+              <div className="space-y-3">
+                {claimedQuests.slice(0, 10).map(c => (
+                  <div key={c.id} className="flex items-center gap-4 py-3 border-b border-white/5 last:border-0">
+                    <div className="w-9 h-9 rounded-xl bg-aurora-500/10 border border-aurora-500/20 flex items-center justify-center text-lg flex-shrink-0">
+                      {c.quest.iconEmoji}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm text-white truncate">{c.quest.title}</div>
+                      <div className="text-xs text-white/30">{format(new Date(c.completedAt), 'MMM d, yyyy · h:mm a')}</div>
+                    </div>
+                    <div className="text-aurora-400 font-mono font-bold text-sm flex-shrink-0">
+                      +{c.pointsEarned} pts
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="card">
             <h3 className="font-display text-xl font-bold text-white mb-6">Transaction History</h3>
             {user.transactions.length === 0 ? (

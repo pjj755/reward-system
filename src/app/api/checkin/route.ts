@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getDevSession } from '@/lib/dev-session'
 import { prisma } from '@/lib/prisma'
 import { isToday, isYesterday, getStreakBonus } from '@/lib/utils'
+import { markQuestPending } from '@/lib/quest-utils'
 
 export async function POST() {
   const session = await getDevSession()
@@ -87,6 +88,17 @@ export async function POST() {
       : []),
   ])
 
+  // Auto-award streak challenge quests
+  const bonusQuests = []
+  if (newStreak === 7) {
+    const r = await markQuestPending(userId, 'challenge')
+    if (r) bonusQuests.push(r)
+  }
+  if (newStreak === 30) {
+    const r = await markQuestPending(userId, 'moonshot_legend')
+    if (r) bonusQuests.push(r)
+  }
+
   return NextResponse.json({
     success: true,
     pointsEarned: totalPoints,
@@ -96,5 +108,6 @@ export async function POST() {
     longestStreak: newLongest,
     milestone,
     newBalance: user.pointsBalance + totalPoints,
+    bonusQuests,
   })
 }

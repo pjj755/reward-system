@@ -1,70 +1,77 @@
 import Link from 'next/link'
 import { getDevSession } from '@/lib/dev-session'
-import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { isToday } from '@/lib/utils'
+import WelcomeBonusBanner from '@/components/WelcomeBonusBanner'
 
 export default async function HomePage() {
   const session = await getDevSession()
-  if (!session) redirect('/auth')
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: {
-      pointsBalance: true, totalEarned: true, currentStreak: true,
-      longestStreak: true, lastCheckinAt: true, name: true,
-      _count: { select: { questCompletions: true, redemptions: true } },
-    },
-  })
+  const user = session
+    ? await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: {
+          pointsBalance: true, totalEarned: true, currentStreak: true,
+          longestStreak: true, lastCheckinAt: true, name: true,
+          welcomeBonusClaimed: true,
+          _count: { select: { questCompletions: true, redemptions: true } },
+        },
+      })
+    : null
 
   const checkedInToday = user?.lastCheckinAt ? isToday(new Date(user.lastCheckinAt)) : false
-  const displayName = user?.name ?? session.user.email?.split('@')[0] ?? 'Explorer'
-  const isNewUser = (user?.totalEarned ?? 0) === 100 && (user?._count.questCompletions ?? 0) === 0
+  const displayName = user?.name ?? session?.user.email?.split('@')[0] ?? 'Explorer'
+  const showWelcomeBanner = session && !user?.welcomeBonusClaimed
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
-      {/* Welcome bonus banner for new users */}
-      {isNewUser && (
+      {!session && (
         <div className="mb-8 relative overflow-hidden rounded-2xl border border-aurora-500/30 bg-gradient-to-r from-aurora-500/10 via-nova-500/10 to-moon-500/10 p-6">
           <div className="absolute inset-0 pointer-events-none">
-            {[...Array(8)].map((_, i) => (
+            {['🎉','⭐','✨','🚀','🌙','💫','🎁','⚡'].map((emoji, i) => (
               <div key={i} className="absolute text-2xl animate-float" style={{
-                left: `${10 + i * 12}%`, top: `${Math.random() * 60}%`,
+                left: `${10 + i * 12}%`, top: `${20 + (i % 3) * 20}%`,
                 animationDelay: `${i * 0.3}s`, opacity: 0.4,
               }}>
-                {['🎉','⭐','✨','🚀','🌙','💫','🎁','⚡'][i]}
+                {emoji}
               </div>
             ))}
           </div>
           <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-2xl">🎉</span>
-                <h2 className="font-display text-xl font-bold text-white">Welcome to Moonshot!</h2>
+                <span className="text-2xl">🎁</span>
+                <h2 className="font-display text-xl font-bold text-white">New User Welcome Bonus</h2>
               </div>
               <p className="text-white/60 text-sm">
-                We've gifted you <span className="text-aurora-400 font-bold">100 points</span> to get started. Complete your first check-in to earn more!
+                Register now and claim <span className="text-aurora-400 font-bold">100 free points</span> — enough to redeem your first reward instantly!
               </p>
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
               <div className="text-center glass rounded-xl px-4 py-2 border border-aurora-500/20">
                 <div className="text-2xl font-bold font-mono text-aurora-400">+100</div>
-                <div className="text-xs text-white/40">welcome pts</div>
+                <div className="text-xs text-white/40">free points</div>
               </div>
-              <Link href="/quests" className="btn-primary text-sm py-2 px-4 whitespace-nowrap">
-                Start Earning →
+              <Link href="/auth" className="btn-primary text-sm py-2 px-4 whitespace-nowrap">
+                Claim Now →
               </Link>
             </div>
           </div>
         </div>
       )}
 
+      {showWelcomeBanner && (
+        <WelcomeBonusBanner displayName={displayName} />
+      )}
+
       {/* Hero */}
       <div className="text-center mb-16">
         <div className="inline-flex items-center gap-2 glass rounded-full px-4 py-1.5 text-sm text-nova-300 mb-6 border border-nova-500/20">
           <span className="w-2 h-2 rounded-full bg-aurora-400 animate-pulse" />
-          {isNewUser ? `Welcome, ${displayName}` : `Welcome back, ${displayName}`}
+          {session
+            ? (showWelcomeBanner ? `Welcome, ${displayName}` : `Welcome back, ${displayName}`)
+            : 'Start your journey today'}
         </div>
         <h1 className="font-display text-5xl sm:text-7xl font-bold mb-4 leading-tight">
           <span className="gradient-text">Reach for</span>
@@ -74,15 +81,25 @@ export default async function HomePage() {
         <p className="text-white/50 text-lg max-w-xl mx-auto">
           Complete quests, build streaks, and redeem exclusive rewards on your journey to the stars.
         </p>
+        {!session && (
+          <div className="mt-8 flex items-center justify-center gap-4">
+            <Link href="/auth" className="btn-primary px-8 py-3">
+              Get Started — It's Free
+            </Link>
+            <Link href="/quests" className="btn-ghost px-6 py-3">
+              Browse Quests
+            </Link>
+          </div>
+        )}
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-12">
+      {/* Stats Grid — only for logged-in users */}
+      {session && <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-12">
         {[
-          { label: 'Points Balance', value: (user?.pointsBalance ?? 0).toLocaleString(), icon: '⭐', color: 'text-moon-400' },
-          { label: 'Current Streak', value: `${user?.currentStreak ?? 0} days`, icon: '🔥', color: 'text-orange-400' },
-          { label: 'Quests Done', value: user?._count.questCompletions ?? 0, icon: '⚡', color: 'text-nova-400' },
-          { label: 'Rewards Redeemed', value: user?._count.redemptions ?? 0, icon: '🎁', color: 'text-aurora-400' },
+          { label: 'Points Balance', value: session ? (user?.pointsBalance ?? 0).toLocaleString() : '—', icon: '⭐', color: 'text-moon-400' },
+          { label: 'Current Streak', value: session ? `${user?.currentStreak ?? 0} days` : '—', icon: '🔥', color: 'text-orange-400' },
+          { label: 'Quests Done', value: session ? (user?._count.questCompletions ?? 0) : '—', icon: '⚡', color: 'text-nova-400' },
+          { label: 'Rewards Redeemed', value: session ? (user?._count.redemptions ?? 0) : '—', icon: '🎁', color: 'text-aurora-400' },
         ].map(stat => (
           <div key={stat.label} className="card text-center">
             <div className="text-2xl mb-2">{stat.icon}</div>
@@ -90,7 +107,7 @@ export default async function HomePage() {
             <div className="text-white/40 text-xs mt-1">{stat.label}</div>
           </div>
         ))}
-      </div>
+      </div>}
 
       {/* Quick Actions */}
       <div className="grid sm:grid-cols-3 gap-6 mb-12">
@@ -100,15 +117,17 @@ export default async function HomePage() {
           <div className="text-3xl mb-3">🔥</div>
           <h3 className="font-display text-xl font-bold mb-1">Daily Check-in</h3>
           <p className="text-white/50 text-sm mb-4 flex-1">
-            {checkedInToday
+            {!session
+              ? 'Sign in to start your daily streak and earn points every day.'
+              : checkedInToday
               ? `Day ${user?.currentStreak} streak — come back tomorrow!`
               : `Streak: ${user?.currentStreak ?? 0} days. Don't break the chain!`}
           </p>
           <Link
-            href="/quests"
+            href={session ? '/quests' : '/auth'}
             className={checkedInToday ? 'btn-primary text-sm py-2 px-4 w-full text-center block opacity-80 pointer-events-none' : 'btn-moon text-sm py-2 px-4 w-full text-center block'}
           >
-            {checkedInToday ? '✓ Checked In Today' : 'Check In Now'}
+            {!session ? 'Sign In to Check In' : checkedInToday ? '✓ Checked In Today' : 'Check In Now'}
           </Link>
         </div>
 

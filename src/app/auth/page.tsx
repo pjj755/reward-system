@@ -88,6 +88,10 @@ export default function AuthPage() {
           <div className="text-5xl mb-4 animate-float inline-block">🌙</div>
           <h1 className="font-display text-3xl font-bold text-white mb-1">Sign in to Moonshot</h1>
           <p className="text-white/40 text-sm">Start earning rewards today</p>
+          <div className="mt-4 inline-flex items-center gap-2 bg-gradient-to-r from-aurora-500/20 to-nova-500/20 border border-aurora-400/30 rounded-full px-4 py-1.5 shadow-[0_0_12px_rgba(52,211,153,0.15)]">
+            <span className="text-lg">🎁</span>
+            <span className="text-sm font-semibold text-white">New users get <span className="text-aurora-400">100 points</span> free</span>
+          </div>
         </div>
 
         {sent ? (
@@ -108,7 +112,7 @@ export default function AuthPage() {
             {hasGoogle && (
               <button
                 onClick={() => signIn('google', { callbackUrl: '/' })}
-                className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-white text-gray-800 font-medium text-sm hover:bg-gray-100 transition-all"
+                className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-white/8 border border-white/12 text-white font-medium text-sm hover:bg-white/14 hover:border-white/20 transition-all backdrop-blur-sm"
               >
                 <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -137,7 +141,7 @@ export default function AuthPage() {
             <button
               onClick={handleMetaMaskSignIn}
               disabled={walletLoading}
-              className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-[#f6851b]/10 border border-[#f6851b]/30 text-white font-medium text-sm hover:bg-[#f6851b]/20 hover:border-[#f6851b]/50 transition-all disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-white/8 border border-white/12 text-white font-medium text-sm hover:bg-white/14 hover:border-[#f6851b]/40 transition-all backdrop-blur-sm disabled:opacity-50"
             >
               {walletLoading ? (
                 <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin flex-shrink-0" />

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDevSession } from '@/lib/dev-session'
 import { prisma } from '@/lib/prisma'
 import { generateRedemptionCode } from '@/lib/utils'
+import { markQuestPending } from '@/lib/quest-utils'
 
 export async function POST(req: NextRequest) {
   const session = await getDevSession()
@@ -28,6 +29,17 @@ export async function POST(req: NextRequest) {
   // Validate stock
   if (reward.stock !== -1 && reward.stock <= 0) {
     return NextResponse.json({ error: 'Out of stock' }, { status: 409 })
+  }
+
+  // Validate per-user limit
+  if (reward.limitPerUser === 1) {
+    const existing = await prisma.redemption.findFirst({
+      where: { userId: userId, rewardId: rewardId },
+      select: { id: true },
+    })
+    if (existing) {
+      return NextResponse.json({ error: 'You have already redeemed this reward' }, { status: 409 })
+    }
   }
 
   // Validate balance
@@ -76,6 +88,8 @@ export async function POST(req: NextRequest) {
       : []),
   ])
 
+  const bonusQuest = await markQuestPending(userId, 'bonus')
+
   return NextResponse.json({
     success: true,
     code,
@@ -83,5 +97,6 @@ export async function POST(req: NextRequest) {
     reward: { title: reward.title, emoji: reward.iconEmoji },
     pointsSpent: reward.pointCost,
     newBalance: user.pointsBalance - reward.pointCost,
+    bonusQuest,
   })
 }
