@@ -40,38 +40,25 @@ export default function RewardsPage() {
     })
   const filtered = sortRewards(filter === 'all' ? rewards : rewards.filter(r => r.category === filter))
 
-  // Set up IntersectionObserver after BOTH session and rewards are ready
-  useEffect(() => {
-    if (!session || rewards.length === 0) return
+  const trackExplorer = useCallback(async (rewardId: string) => {
+    if (!session) return
     const key = 'viewed_rewards'
-    const observer = new IntersectionObserver(async (entries) => {
-      for (const entry of entries) {
-        if (!entry.isIntersecting) continue
-        const rewardId = (entry.target as HTMLElement).dataset.rewardId
-        if (!rewardId) continue
-        observer.unobserve(entry.target)
-        const existing: string[] = JSON.parse(localStorage.getItem(key) || '[]')
-        if (existing.includes(rewardId)) continue
-        const updated = [...existing, rewardId]
-        localStorage.setItem(key, JSON.stringify(updated))
-        if (updated.length >= 5) {
-          const res = await fetch('/api/quests/complete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ questType: 'social' }),
-          })
-          const data = await res.json()
-          if (data.success) {
-            localStorage.removeItem(key)
-            observer.disconnect()
-          }
-        }
+    const existing: string[] = JSON.parse(localStorage.getItem(key) || '[]')
+    if (existing.includes(rewardId)) return
+    const updated = [...existing, rewardId]
+    localStorage.setItem(key, JSON.stringify(updated))
+    if (updated.length >= 5) {
+      const res = await fetch('/api/quests/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questType: 'social' }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        localStorage.removeItem(key)
       }
-    }, { threshold: 0.4 })
-
-    document.querySelectorAll('[data-reward-id]').forEach(el => observer.observe(el))
-    return () => observer.disconnect()
-  }, [session, rewards])
+    }
+  }, [session])
 
   const handleCardClick = (reward: Reward) => {
     if (!session) { router.push('/auth'); return }
