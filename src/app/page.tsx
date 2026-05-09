@@ -95,11 +95,11 @@ export default async function HomePage() {
       {/* Quick Actions */}
       <div className="grid sm:grid-cols-3 gap-6 mb-12">
         {/* Check-in CTA */}
-        <div className={`card relative overflow-hidden ${checkedInToday ? 'opacity-80' : 'border-orange-500/20 bg-orange-500/5'}`}>
+        <div className={`card relative overflow-hidden flex flex-col ${checkedInToday ? 'opacity-80' : 'border-orange-500/20 bg-orange-500/5'}`}>
           <div className="absolute top-0 right-0 text-6xl opacity-10 -translate-y-2 translate-x-2">🔥</div>
           <div className="text-3xl mb-3">🔥</div>
           <h3 className="font-display text-xl font-bold mb-1">Daily Check-in</h3>
-          <p className="text-white/50 text-sm mb-4">
+          <p className="text-white/50 text-sm mb-4 flex-1">
             {checkedInToday
               ? `Day ${user?.currentStreak} streak — come back tomorrow!`
               : `Streak: ${user?.currentStreak ?? 0} days. Don't break the chain!`}
@@ -113,22 +113,22 @@ export default async function HomePage() {
         </div>
 
         {/* Quests CTA */}
-        <div className="card relative overflow-hidden border-nova-500/20 bg-nova-500/5">
+        <div className="card relative overflow-hidden border-nova-500/20 bg-nova-500/5 flex flex-col">
           <div className="absolute top-0 right-0 text-6xl opacity-10 -translate-y-2 translate-x-2">⚡</div>
           <div className="text-3xl mb-3">⚡</div>
           <h3 className="font-display text-xl font-bold mb-1">Quests</h3>
-          <p className="text-white/50 text-sm mb-4">Explore available quests and earn points for completing challenges.</p>
-          <Link href="/quests" className="btn-primary text-sm py-2 px-4 w-full text-center block">
+          <p className="text-white/50 text-sm mb-4 flex-1">Explore available quests and earn points for completing challenges.</p>
+          <Link href="/quests" className="btn-ghost text-sm py-2 px-4 w-full text-center block">
             Browse Quests
           </Link>
         </div>
 
         {/* Rewards CTA */}
-        <div className="card relative overflow-hidden border-aurora-500/20 bg-aurora-500/5">
+        <div className="card relative overflow-hidden border-aurora-500/20 bg-aurora-500/5 flex flex-col">
           <div className="absolute top-0 right-0 text-6xl opacity-10 -translate-y-2 translate-x-2">🎁</div>
           <div className="text-3xl mb-3">🎁</div>
           <h3 className="font-display text-xl font-bold mb-1">Rewards</h3>
-          <p className="text-white/50 text-sm mb-4">Spend your hard-earned points on exclusive rewards and vouchers.</p>
+          <p className="text-white/50 text-sm mb-4 flex-1">Spend your hard-earned points on exclusive rewards and vouchers.</p>
           <Link href="/rewards" className="btn-ghost text-sm py-2 px-4 w-full text-center block">
             View Rewards
           </Link>
