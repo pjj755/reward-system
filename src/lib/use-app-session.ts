@@ -2,7 +2,7 @@
 import { useSession } from 'next-auth/react'
 
 const DEV_SESSION = {
-  data: { user: { id: 'dev-user-001', email: 'dev@local.dev', name: 'Dev User' } },
+  data: { user: { id: 'dev-user-001', email: 'dev@local.dev', name: 'Dev User', pointsBalance: 100, totalEarned: 100, currentStreak: 0 } },
   status: 'authenticated' as const,
   update: async () => null,
 }
