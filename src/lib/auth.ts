@@ -6,31 +6,40 @@ import GitHubProvider from 'next-auth/providers/github'
 import GoogleProvider from 'next-auth/providers/google'
 import { prisma } from './prisma'
 
+function buildEmailProvider() {
+  if (process.env.EMAIL_SERVER_HOST) {
+    return EmailProvider({
+      server: {
+        host: process.env.EMAIL_SERVER_HOST,
+        port: Number(process.env.EMAIL_SERVER_PORT ?? 587),
+        auth: {
+          user: process.env.EMAIL_SERVER_USER,
+          pass: process.env.EMAIL_SERVER_PASSWORD,
+        },
+      },
+      from: process.env.EMAIL_FROM ?? 'noreply@moonshot.local',
+    })
+  }
+  if (process.env.NODE_ENV === 'development') {
+    return EmailProvider({
+      server: 'smtp://localhost:25',
+      from: 'noreply@moonshot.local',
+      sendVerificationRequest({ url }) {
+        console.log('\n🔗 Magic Link (dev mode):')
+        console.log(url)
+        console.log()
+      },
+    })
+  }
+  return null
+}
+
+const emailProvider = buildEmailProvider()
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
   providers: [
-    EmailProvider({
-      server: process.env.EMAIL_SERVER_HOST
-        ? {
-            host: process.env.EMAIL_SERVER_HOST,
-            port: Number(process.env.EMAIL_SERVER_PORT),
-            auth: {
-              user: process.env.EMAIL_SERVER_USER,
-              pass: process.env.EMAIL_SERVER_PASSWORD,
-            },
-          }
-        : 'smtp://localhost:25',
-      from: process.env.EMAIL_FROM ?? 'noreply@moonshot.local',
-      ...(process.env.NODE_ENV === 'development' && !process.env.EMAIL_SERVER_HOST
-        ? {
-            sendVerificationRequest({ url }) {
-              console.log('\n🔗 Magic Link (dev mode):')
-              console.log(url)
-              console.log()
-            },
-          }
-        : {}),
-    }),
+    ...(emailProvider ? [emailProvider] : []),
     CredentialsProvider({
       id: 'metamask',
       name: 'MetaMask',

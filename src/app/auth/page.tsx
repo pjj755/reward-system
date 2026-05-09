@@ -78,6 +78,7 @@ export default function AuthPage() {
 
   const hasGoogle = process.env.NEXT_PUBLIC_HAS_GOOGLE === 'true'
   const hasGithub = process.env.NEXT_PUBLIC_HAS_GITHUB === 'true'
+  const hasEmail = process.env.NEXT_PUBLIC_HAS_EMAIL === 'true'
 
   return (
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-12">
@@ -159,43 +160,51 @@ export default function AuthPage() {
               {walletLoading ? 'Connecting...' : 'Sign in with MetaMask'}
             </button>
 
-            {/* Divider */}
-            <div className="relative py-2">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-white/10" />
-              </div>
-              <div className="relative flex justify-center text-xs text-white/30">
-                <span className="bg-space-950 px-3">or</span>
-              </div>
-            </div>
-
-            {/* Email Form */}
-            <form onSubmit={handleEmailSignIn} className="space-y-3">
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                className="input w-full"
-                required
-                disabled={loading}
-              />
-              {error && (
-                <div className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
-                  {error}
+            {/* Divider + Email Form */}
+            {hasEmail && (
+              <>
+                <div className="relative py-2">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-white/10" />
+                  </div>
+                  <div className="relative flex justify-center text-xs text-white/30">
+                    <span className="bg-space-950 px-3">or</span>
+                  </div>
                 </div>
-              )}
-              <button type="submit" className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-sm font-medium text-white disabled:opacity-50" disabled={loading || !email.trim()}>
-                {loading ? (
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                )}
-                {loading ? 'Sending...' : 'Sign in with Email'}
-              </button>
-            </form>
+
+                <form onSubmit={handleEmailSignIn} className="space-y-3">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="input w-full"
+                    required
+                    disabled={loading}
+                  />
+                  {error && (
+                    <div className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
+                      {error}
+                    </div>
+                  )}
+                  <button type="submit" className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-sm font-medium text-white disabled:opacity-50" disabled={loading || !email.trim()}>
+                    {loading ? (
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    )}
+                    {loading ? 'Sending...' : 'Sign in with Email'}
+                  </button>
+                </form>
+              </>
+            )}
+            {error && !hasEmail && (
+              <div className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
+                {error}
+              </div>
+            )}
 
             <p className="text-center text-xs text-white/20 pt-1">
               By signing in, you agree to our Terms of Service.

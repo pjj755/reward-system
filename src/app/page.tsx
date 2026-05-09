@@ -95,7 +95,7 @@ export default async function HomePage() {
       {/* Quick Actions */}
       <div className="grid sm:grid-cols-3 gap-6 mb-12">
         {/* Check-in CTA */}
-        <div className={`card relative overflow-hidden flex flex-col ${checkedInToday ? 'opacity-80' : 'border-orange-500/20 bg-orange-500/5'}`}>
+        <div className={`card relative overflow-hidden flex flex-col ${checkedInToday ? 'border-aurora-500/30 bg-aurora-500/5' : 'border-orange-500/20 bg-orange-500/5'}`}>
           <div className="absolute top-0 right-0 text-6xl opacity-10 -translate-y-2 translate-x-2">🔥</div>
           <div className="text-3xl mb-3">🔥</div>
           <h3 className="font-display text-xl font-bold mb-1">Daily Check-in</h3>
@@ -106,9 +106,9 @@ export default async function HomePage() {
           </p>
           <Link
             href="/quests"
-            className={checkedInToday ? 'btn-ghost text-sm py-2 px-4 w-full text-center block' : 'btn-moon text-sm py-2 px-4 w-full text-center block'}
+            className={checkedInToday ? 'btn-primary text-sm py-2 px-4 w-full text-center block opacity-80 pointer-events-none' : 'btn-moon text-sm py-2 px-4 w-full text-center block'}
           >
-            {checkedInToday ? '✓ Checked In' : 'Check In Now'}
+            {checkedInToday ? '✓ Checked In Today' : 'Check In Now'}
           </Link>
         </div>
 
@@ -118,7 +118,7 @@ export default async function HomePage() {
           <div className="text-3xl mb-3">⚡</div>
           <h3 className="font-display text-xl font-bold mb-1">Quests</h3>
           <p className="text-white/50 text-sm mb-4 flex-1">Explore available quests and earn points for completing challenges.</p>
-          <Link href="/quests" className="btn-ghost text-sm py-2 px-4 w-full text-center block">
+          <Link href="/quests" className="btn-primary text-sm py-2 px-4 w-full text-center block">
             Browse Quests
           </Link>
         </div>
